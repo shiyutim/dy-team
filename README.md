@@ -2,6 +2,8 @@
 
 斗鱼团播分析工具，旨在帮助团播主播能够更清晰的分析数据。数据来源于播酱
 
+## 下载
+点击<a href="https://github.com/shiyutim/dy-team/releases" target="_blank">这里</a>去下载对应系统的版本即可
 
 ## 使用
 1. 填写配置
@@ -9,7 +11,7 @@
 
 token获取方式：
 
-- 登录[播酱](https://www.bojianger.com/user-login.html?redirect=https%3A%2F%2Fwww.bojianger.com%2F)
+- 登录<a href="https://www.bojianger.com/user-login.html?redirect=https%3A%2F%2Fwww.bojianger.com%2F" target="_blank">播酱</a>
 - 打开控制台（在播酱的页面右键点击选择**检查**）
 - 1. 选择 Application 2. 找到 Local Storage 选择网址 3. 找到token，复制对应的值
 ![图片](./public/2.png)
