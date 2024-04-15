@@ -95,7 +95,7 @@ async function getData() {
     if (max <= index) return
     let timer = setInterval(() => {
         index = processRoomData(index);
-        if (index >= max) {
+        if (index > max) {
             clearInterval(timer);
             timer = null;
         }
@@ -123,12 +123,14 @@ async function setDataById(id) {
         token: form.token
     })
     const parseData = JSON.parse(firstRes)
+    // console.log('parseData', parseData)
 
     if (parseData.code !== 0) {
         Message.error({
             duration: 5000,
             content: "数据获取失败，请重新设置token或联系管理员"
         })
+        btnLoading.value = false
         return false
     }
 
@@ -163,13 +165,25 @@ const selectList = ref([
         key: 'danmu_count'
     },
     {
+        name: '弹幕人数',
+        key: 'danmu_person_count'
+    },
+    {
         name: '平均热度',
         key: 'hn_avg'
     },
     {
+        name: '峰值热度',
+        key: 'hn_max'
+    },
+    {
         name: '活跃观众',
         key: 'audience_count'
-    }
+    },
+    {
+        name: '送礼人数',
+        key: 'gift_person_count'
+    },
 ])
 const selectItem = ref('gift_new_yc')
 
@@ -177,7 +191,6 @@ const selectItem = ref('gift_new_yc')
 watch(selectItem, (selectItem) => {
     render(selectItem)
 })
-
 
 let chartData = ref([])
 
@@ -189,10 +202,15 @@ function render(key) {
     // 先排好序
     const sortList = chartData.value.sort((a, b) => b.total_statistic[key] - a.total_statistic[key])
 
+    if (!Array.isArray(sortList) || !sortList.length) {
+        Message.info("请先获取数据")
+        return
+    }
+
     const options = {
         xAxis: {
             type: 'category',
-            data: sortList.map(item => item.name),
+            data: sortList.map(item => item.name || '--'),
             axisLabel: {
                 show: true,
                 interval: 0,
@@ -239,6 +257,7 @@ async function getRoomList() {
     const res = await invoke("get_dy_loadpage_url", {
         url: config.url
     })
+    // console.log('res', res)
     const parseData = JSON.parse(res)
 
     if (parseData.code === 0) {
@@ -247,13 +266,14 @@ async function getRoomList() {
         if (!childItem) return
         let arr = childItem.children[0]
         while (arr.children) {
-            if (arr.children[0].name === "NewPcBasicRoomButton") {
+            let idx = arr.children.findIndex(item => item.children)
+            idx < 0 && (idx = 0)
+            if (arr.children[idx].name === "NewPcBasicRoomButton") {
                 break
             }
-            arr = arr.children[0]
+            arr = arr.children[idx]
         }
 
-        console.log('arr', arr)
         // 主播列表
         if (Array.isArray(arr.children)) {
             result = arr.children.map(item => {
@@ -268,6 +288,7 @@ async function getRoomList() {
     return result
 }
 
+
 const roomList = ref([])
 
 async function initRoomList() {
@@ -279,14 +300,18 @@ async function initRoomList() {
     roomList.value = list
 }
 
+const anchorLoading = ref(false)
 // 获取后储存，并返回
 async function reloadAnchor() {
+    anchorLoading.value = true
     const list = await getRoomList()
+    // console.log("list", list)
     if (Array.isArray(list) && list.length) {
         localStorage.setItem("roomList", JSON.stringify(list))
 
         roomList.value = list
     }
+    anchorLoading.value = false
 }
 
 const dateValue = ref(Date.now())
@@ -337,7 +362,7 @@ function getTodayDate() {
         <div class="anchor-list">
             <div class="tool">
                 <div class="subtitle">主播列表</div>
-                <a-button @click="reloadAnchor" class="reload-anchor">刷新</a-button>
+                <a-button :loading="anchorLoading" @click="reloadAnchor" class="reload-anchor">刷新</a-button>
             </div>
             <a-tag :color="item.id === config.mainId ? mainColor : defaultColor" class="anchor-item"
                 v-for="item in roomList" :key="item.id">{{ item.name }}</a-tag>

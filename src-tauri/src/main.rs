@@ -15,8 +15,9 @@ fn greet(name: &str) -> String {
 
 // 1. 通过 curl 获取接口地址
 // 2. 获取接口地址后，请求数据
-
+#[derive(Debug)]
 struct LoadPageParam {
+    name: String,
     page_id: String,
     ver: String,
 }
@@ -25,22 +26,25 @@ fn get_pageid_and_ver_by_url(url: &str) -> LoadPageParam {
     let output = Command::new("curl").arg(url).output().expect("error");
     let output_str = String::from_utf8_lossy(&output.stdout).to_string();
 
-    // 使用正则表达式匹配 pageId 和 ver
-    let page_id_regex = Regex::new(r#"pageId=([^&]+)"#).unwrap();
-    let ver_regex = Regex::new(r#"ver=([^"]+)"#).unwrap();
-
+    let re = Regex::new(r"name=([^&]*)&pageId=([^&]*)&ver=([^&]*)").unwrap();
+    let mut name = String::new();
     let mut page_id = String::new();
     let mut ver = String::new();
+    // 在输入字符串中搜索匹配项
+    if let Some(captures) = re.captures(&output_str) {
+        // 提取匹配项中的值
+        name = captures
+            .get(1)
+            .map_or(String::new(), |m| String::from(m.as_str()));
+        page_id = captures
+            .get(2)
+            .map_or(String::new(), |m| String::from(m.as_str()));
+        ver = captures
+            .get(3)
+            .map_or(String::new(), |m| String::from(m.as_str()));
+    }
 
-    if let Some(page_id_match) = page_id_regex.captures(&output_str) {
-        page_id = String::from(&page_id_match[1]);
-    };
-
-    if let Some(ver_match) = ver_regex.captures(&output_str) {
-        ver = String::from(&ver_match[1]);
-    };
-
-    let result = LoadPageParam { page_id, ver };
+    let result = LoadPageParam { name, page_id, ver };
 
     result
 }
@@ -67,12 +71,16 @@ async fn get_dy_loadpage_url_res(url: &str) -> Result<String, Box<dyn Error>> {
     headers.insert("referer", "https://www.douyu.com/".parse().unwrap());
 
     let client = Client::builder().build().unwrap();
-    let res = client.get(format!("https://butterfly.douyucdn.cn/api/page/loadPage?name=pageData2&pageId={}&ver={}&view=0", page_id_and_ver.page_id, page_id_and_ver.ver))
-    .headers(headers)
-    .send()
-    .await?
-    .text()
-    .await?;
+    let res = client
+        .get(format!(
+            "https://butterfly.douyucdn.cn/api/page/loadPage?name={}&pageId={}&ver={}&view=0",
+            page_id_and_ver.name, page_id_and_ver.page_id, page_id_and_ver.ver
+        ))
+        .headers(headers)
+        .send()
+        .await?
+        .text()
+        .await?;
 
     Ok(res)
 }
